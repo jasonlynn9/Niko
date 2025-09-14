@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Niko's Fun Directory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fredoka:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .card {
+            background-color: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 2px solid transparent;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+        }
+        .bouncing-star {
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+        .text-fun-bold {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, serverTimestamp, query, orderBy, getDocs, doc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        setLogLevel('debug');
+
+        // Global variables for Firebase config and App ID
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth;
+
+        // Elements
+        const directoryGrid = document.getElementById('directory-grid');
+        const linkForm = document.getElementById('link-form');
+        const titleInput = document.getElementById('title-input');
+        const urlInput = document.getElementById('url-input');
+        const descriptionInput = document.getElementById('description-input');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const copyUserIdBtn = document.getElementById('copy-user-id-btn');
+        const modal = document.getElementById('add-link-modal');
+        const openModalBtn = document.getElementById('open-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalUserIdDisplay = document.getElementById('modal-user-id-display');
+        const modalCopyBtn = document.getElementById('modal-copy-btn');
+        const generateButton = document.getElementById('generate-button');
+        const generateLoading = document.getElementById('generate-loading');
+
+        // Initial sample links
+        const sampleLinks = [
+            { title: "Story Time with Eric Carle", url: "https://www.youtube.com/watch?v=75NQK-Sm1YY", description: "Listen to the very hungry caterpillar munch his way through the week!" },
+            { title: "Niko's Awesome Photo Adventure", url: "https://photos.app.goo.gl/niko-photo-album", description: "Look at all the happy moments with family and friends!" },
+            { title: "Fun-tastic Songs for Kids", url: "https://www.youtube.com/playlist?list=PLt5yN8Jm5s9N2pB_gGz5G2-B6tT3vG2A9", description: "Sing and dance along to all your favorite tunes!" },
+            { title: "Curious George's Bananas", url: "https://www.hulu.com/series/curious-george", description: "Watch George the monkey have silly adventures and learn new things." }
+        ];
+
+        // Initialize Firebase
+        const initFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Sign in with custom token if available, otherwise sign in anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                const userId = auth.currentUser?.uid || 'anonymous';
+                userIdDisplay.textContent = `User ID: ${userId}`;
+                modalUserIdDisplay.textContent = `User ID: ${userId}`;
+                
+                // Add initial data if collection is empty
+                const collectionRef = collection(db, `/artifacts/${appId}/public/data/niko-directory`);
+                const querySnapshot = await getDocs(query(collectionRef));
+                if (querySnapshot.empty) {
+                    for (const link of sampleLinks) {
+                        await addDoc(collectionRef, {
+                            ...link,
+                            createdAt: serverTimestamp(),
+                            userId: userId
+                        });
+                    }
+                }
+
+                startRealtimeListener();
+
+            } catch (error) {
+                console.error("Firebase initialization or authentication failed:", error);
+                userIdDisplay.textContent = `Error: ${error.message}`;
+            }
+        };
+
+        const getIconForUrl = (url) => {
+            if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                return '<span class="text-3xl">▶️</span>';
+            }
+            if (url.includes('goo.gl') || url.includes('photos.app.goo.gl')) {
+                return '<span class="text-3xl">🖼️</span>';
+            }
+            if (url.includes('story')) {
+                return '<span class="text-3xl">📚</span>';
+            }
+            return '<span class="text-3xl">✨</span>';
+        };
+
+        const startRealtimeListener = () => {
+            const collectionRef = collection(db, `/artifacts/${appId}/public/data/niko-directory`);
+            const q = query(collectionRef, orderBy('createdAt', 'desc'));
+
+            onSnapshot(q, (snapshot) => {
+                directoryGrid.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    const docId = doc.id;
+                    if (data.title && data.url) {
+                        const cardDiv = document.createElement('div');
+                        cardDiv.className = 'card p-6 rounded-3xl shadow-lg border-4 border-transparent hover:border-blue-500 transform transition-transform hover:scale-[1.02] relative flex flex-col justify-between';
+                        
+                        let imageContent = '';
+                        if (data.imageUrl) {
+                            imageContent = `<img src="${data.imageUrl}" alt="${data.title}" class="w-full h-40 object-cover rounded-xl mb-4 shadow-inner">`;
+                        } else {
+                            imageContent = `
+                                <div class="w-full h-40 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 mb-4 shadow-inner">
+                                    <span class="text-5xl">✨</span>
+                                </div>
+                            `;
+                        }
+
+                        cardDiv.innerHTML = `
+                            <div>
+                                ${imageContent}
+                                <div class="flex items-start mb-2">
+                                    ${getIconForUrl(data.url)}
+                                    <div class="ml-4">
+                                        <h3 class="text-xl md:text-2xl font-bold text-gray-800 break-words">${data.title}</h3>
+                                        <p class="mt-1 text-sm text-gray-500 font-semibold break-words truncate">${data.url}</p>
+                                    </div>
+                                </div>
+                                ${data.description ? `<p class="mt-2 text-base text-gray-600">${data.description}</p>` : ''}
+                            </div>
+                            <div class="flex items-center justify-between mt-6">
+                                <a href="${data.url}" target="_blank" rel="noopener noreferrer" class="font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+                                    Go to Link
+                                </a>
+                                <div class="flex items-center space-x-2">
+                                    <button class="generate-image-btn text-purple-600 hover:text-purple-800 transition-colors" data-doc-id="${docId}" data-title="${data.title}" data-description="${data.description}">
+                                        <i class="fas fa-image text-lg"></i>
+                                    </button>
+                                    <div class="generate-loading hidden">
+                                        <div class="loading-spinner"></div>
+                                    </div>
+                                    <button class="play-audio-btn text-cyan-600 hover:text-cyan-800 transition-colors" data-title="${data.title}" data-description="${data.description}">
+                                        <i class="fas fa-play text-lg"></i>
+                                    </button>
+                                    <div class="play-loading hidden">
+                                        <i class="fas fa-spinner fa-spin text-cyan-600 text-lg"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        directoryGrid.appendChild(cardDiv);
+
+                        const playButton = cardDiv.querySelector('.play-audio-btn');
+                        const playLoadingIndicator = cardDiv.querySelector('.play-loading');
+                        const generateImageButton = cardDiv.querySelector('.generate-image-btn');
+                        const generateImageLoading = cardDiv.querySelector('.generate-loading');
+                        
+                        playButton.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            const textToSpeak = playButton.dataset.title + (playButton.dataset.description ? `. ${playButton.dataset.description}` : '');
+                            playAudio(textToSpeak, playButton, playLoadingIndicator);
+                        });
+
+                        generateImageButton.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            generateImage(generateImageButton.dataset.docId, generateImageButton.dataset.title, generateImageButton.dataset.description, generateImageButton, generateImageLoading);
+                        });
+                    }
+                });
+            }, (error) => {
+                console.error("Failed to fetch data:", error);
+                directoryGrid.innerHTML = `<p class="text-center text-red-500">Failed to load directory. Please try again later.</p>`;
+            });
+        };
+
+        linkForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = titleInput.value.trim();
+            const url = urlInput.value.trim();
+            const description = descriptionInput.value.trim();
+
+            if (title && url) {
+                try {
+                    const collectionRef = collection(db, `/artifacts/${appId}/public/data/niko-directory`);
+                    await addDoc(collectionRef, {
+                        title: title,
+                        url: url,
+                        description: description,
+                        createdAt: serverTimestamp(),
+                        userId: auth.currentUser?.uid || 'anonymous'
+                    });
+                    titleInput.value = '';
+                    urlInput.value = '';
+                    descriptionInput.value = '';
+                    modal.classList.add('hidden');
+                } catch (error) {
+                    console.error("Error adding document: ", error);
+                    // Use a custom modal instead of alert
+                }
+            } else {
+                // Use a custom modal instead of alert
+            }
+        });
+
+        // Modal functionality
+        openModalBtn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+
+        // Helper function for copy to clipboard
+        const copyToClipboard = (text) => {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+        };
+
+        copyUserIdBtn.addEventListener('click', () => {
+            const userIdText = userIdDisplay.textContent.replace('User ID: ', '');
+            copyToClipboard(userIdText);
+        });
+
+        modalCopyBtn.addEventListener('click', () => {
+            const userIdText = modalUserIdDisplay.textContent.replace('User ID: ', '');
+            copyToClipboard(userIdText);
+        });
+
+        // Function to call Gemini API for title and description generation
+        generateButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const url = urlInput.value.trim();
+
+            if (!url) {
+                return;
+            }
+
+            generateButton.disabled = true;
+            generateLoading.classList.remove('hidden');
+
+            try {
+                const systemPrompt = "You are a cheerful, friendly assistant. Your task is to analyze a webpage and provide a fun, kid-friendly title and a short, simple description for a young child named Niko. The title should be engaging and the description should be 1-2 sentences. Respond in a JSON object with properties 'title' and 'description'.";
+                const userQuery = `Find content for the following URL and generate a title and a description for Niko: ${url}`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: systemPrompt }]
+                    },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "title": { "type": "STRING" },
+                                "description": { "type": "STRING" }
+                            },
+                            "propertyOrdering": ["title", "description"]
+                        }
+                    }
+                };
+                
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                let response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const json = candidate.content.parts[0].text;
+                    const parsedJson = JSON.parse(json);
+                    titleInput.value = parsedJson.title;
+                    descriptionInput.value = parsedJson.description;
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+            } finally {
+                generateButton.disabled = false;
+                generateLoading.classList.add('hidden');
+            }
+        });
+
+        // Function to call Gemini API for image generation
+        async function generateImage(docId, title, description, button, loading) {
+            button.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            const userPrompt = `A cute, cartoon illustration for a child. The subject is "${title}". The style should be playful, bold, and colorful. The subject should be a single character or object and not a complex scene.`;
+
+            const payload = {
+                instances: { prompt: userPrompt },
+                parameters: { "sampleCount": 1 }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const base64Data = result?.predictions?.[0]?.bytesBase64Encoded;
+                
+                if (base64Data) {
+                    const imageUrl = `data:image/png;base64,${base64Data}`;
+                    const linkDocRef = doc(db, `/artifacts/${appId}/public/data/niko-directory/${docId}`);
+                    await updateDoc(linkDocRef, {
+                        imageUrl: imageUrl
+                    });
+                } else {
+                    console.error("Image generation failed:", result);
+                }
+            } catch (error) {
+                console.error("Error calling image generation API:", error);
+            } finally {
+                button.classList.remove('hidden');
+                loading.classList.add('hidden');
+            }
+        }
+
+        // Function to play audio using Gemini TTS
+        async function playAudio(textToSpeak, button, loading) {
+            button.classList.add('hidden');
+            loading.classList.remove('hidden');
+
+            const payload = {
+                contents: [{
+                    parts: [{ text: `Say cheerfully: ${textToSpeak}` }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Puck" }
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 16000;
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                } else {
+                    console.error("Invalid audio response from API");
+                }
+            } catch (error) {
+                console.error("Error playing audio:", error);
+            } finally {
+                button.classList.remove('hidden');
+                loading.classList.add('hidden');
+            }
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcmData, sampleRate) {
+            const pcmBuffer = pcmData.buffer;
+            const wavBuffer = new ArrayBuffer(44 + pcmBuffer.byteLength);
+            const view = new DataView(wavBuffer);
+            const pcmView = new Int16Array(pcmBuffer);
+
+            // RIFF identifier 'RIFF'
+            writeString(view, 0, 'RIFF');
+            // file size
+            view.setUint32(4, 36 + pcmBuffer.byteLength, true);
+            // 'WAVE'
+            writeString(view, 8, 'WAVE');
+            // 'fmt ' chunk
+            view.setUint32(12, 16, true);
+            // chunk size
+            view.setUint16(20, 1, true);
+            // audio format (1 = PCM)
+            view.setUint16(22, 1, true);
+            // number of channels
+            view.setUint32(24, sampleRate, true);
+            // sample rate
+            view.setUint32(28, sampleRate * 2, true);
+            // byte rate
+            view.setUint16(32, 2, true);
+            // block align
+            view.setUint16(34, 16, true);
+            // bits per sample
+            writeString(view, 36, 'data');
+            // 'data' chunk
+            view.setUint32(40, pcmBuffer.byteLength, true);
+            // chunk size
+
+            // Write PCM data
+            let offset = 44;
+            for (let i = 0; i < pcmView.length; i++, offset += 2) {
+                view.setInt16(offset, pcmView[i], true);
+            }
+
+            return new Blob([wavBuffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        initFirebase();
+    </script>
+
+    <!-- Main Content -->
+    <header class="text-center mb-10">
+        <h1 class="text-5xl sm:text-7xl font-extrabold text-gray-900 text-fun-bold">
+            Niko's World <span class="bouncing-star inline-block ml-2 text-yellow-500">⭐</span>
+        </h1>
+        <p class="mt-2 text-lg sm:text-xl text-gray-600 font-semibold">A curated directory of all the fun things Niko loves.</p>
+    </header>
+
+    <main class="flex-grow flex justify-center">
+        <div id="directory-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full max-w-7xl px-4">
+            <!-- Cards will be injected here by JavaScript -->
+        </div>
+    </main>
+
+    <!-- Floating button to open the "add link" modal -->
+    <button id="open-modal-btn" class="fixed bottom-6 right-6 p-4 sm:p-6 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-blue-300">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+    </button>
+
+    <!-- Modal for adding a new link -->
+    <div id="add-link-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-70 hidden">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full relative transform scale-95 transition-transform duration-300 ease-in-out">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-6 text-fun-bold">Add a New Link</h2>
+            <form id="link-form" class="space-y-5">
+                <div>
+                    <label for="url-input" class="block text-sm font-semibold text-gray-700">URL</label>
+                    <input type="url" id="url-input" placeholder="e.g., https://www.youtube.com/..." required class="mt-1 block w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <button id="generate-button" class="w-full px-6 py-3 bg-purple-600 text-white font-bold rounded-xl shadow-md hover:bg-purple-700 transition-colors">
+                        ✨ Generate Title & Description
+                    </button>
+                    <div id="generate-loading" class="hidden text-center mt-2 text-sm text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-purple-600"></i> Generating...
+                    </div>
+                </div>
+                <div>
+                    <label for="title-input" class="block text-sm font-semibold text-gray-700">Title</label>
+                    <input type="text" id="title-input" placeholder="e.g., Peppa Pig Episodes" required class="mt-1 block w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+                </div>
+                <div>
+                    <label for="description-input" class="block text-sm font-semibold text-gray-700">Description (Optional)</label>
+                    <textarea id="description-input" placeholder="A fun description for Niko." class="mt-1 block w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none"></textarea>
+                </div>
+                <div class="pt-2 text-center">
+                    <button type="submit" class="w-full px-6 py-3 bg-green-500 text-white font-bold rounded-xl shadow-md hover:bg-green-600 transition-colors">
+                        Add to Directory
+                    </button>
+                </div>
+            </form>
+            <div class="mt-6 p-4 rounded-xl bg-gray-50 border border-gray-200 text-sm">
+                <p id="modal-user-id-display" class="break-all font-mono text-gray-600">User ID: </p>
+                <button id="modal-copy-btn" class="mt-2 text-blue-500 hover:text-blue-700 font-semibold">Copy ID to share</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer with User ID -->
+    <footer class="mt-8 text-center text-sm text-gray-500">
+        <div id="user-id-display" class="break-all font-mono">User ID: Loading...</div>
+        <button id="copy-user-id-btn" class="mt-1 text-blue-500 hover:text-blue-700 font-semibold text-xs">Copy ID to share</button>
+    </footer>
+
+</body>
+</html>
