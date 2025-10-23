@@ -23,17 +23,22 @@
             cursor: pointer;
         }
 
-        /* Mobile Layout Board Adjustment */
-        /* Reducing the board size to 80% of its previous max-width on smaller screens */
+        /* Mobile Adjustments (Default styles) */
         #board {
             width: 80%; /* Shrink board for mobile view */
-            max-width: 350px; /* Still prevent it from getting too big on tablets/small desktops */
+            max-width: 350px;
             margin-left: auto;
             margin-right: auto;
         }
-        /* Mobile adjustment for cell text size to maintain proportions */
         .cell {
-            font-size: 2.5rem; /* Reduced from 3rem (text-5xl) for better fit on mobile */
+            font-size: 2.5rem; /* Reduced size for better mobile fit */
+        }
+        /* TWEAK: Add more vertical padding/height to the word container background on mobile */
+        #word-container {
+            padding-top: 1rem; /* Increased padding top */
+            padding-bottom: 1rem; /* Increased padding bottom */
+            height: auto !important; /* Ensure it respects padding even with h-10 class present */
+            min-height: 4rem; /* Ensure minimum height */
         }
         /* End Mobile Adjustments */
 
@@ -57,6 +62,7 @@
                 max-width: 350px;
             }
             
+            /* Desktop Word Container Reset to respect dedicated desktop margins */
             #word-container {
                 height: auto; 
                 min-height: 4rem;
@@ -76,14 +82,14 @@
                 margin-bottom: 0;
             }
             
-            /* Reverting board size and cell font size for desktop */
+            /* Desktop board/cell sizing */
             #board {
                 width: 100%;
                 max-width: 350px;
                 margin-top: 1rem;
             }
             .cell {
-                font-size: 3rem; /* Original size for desktop */
+                font-size: 3rem; 
             }
 
             #header-area {
@@ -99,7 +105,7 @@
             }
             
             #round-info {
-                font-size: 0.875rem; /* text-sm equivalent */
+                font-size: 0.875rem;
             }
         }
     </style>
@@ -200,7 +206,7 @@
 
 
     <script>
-        // --- JAVASCRIPT LOGIC - UNCHANGED ---
+        // --- JAVASCRIPT LOGIC ---
         window.addEventListener('error', function(e) {
             console.error('An unhandled error occurred:', e.message);
         });
@@ -218,7 +224,16 @@
         const rulesBtn = document.getElementById('rules-btn');
         const rulesModal = document.getElementById('rules-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
-        const wordList = ["REACT", "ANGULAR", "JAVASCRIPT", "PYTHON", "TAILWIND", "COMPONENT", "FRAMEWORK", "LIBRARY", "DEVELOPER", "INTERFACE"];
+        
+        // TWEAK: Significantly expanded word list for variety
+        const wordList = [
+            "REACT", "ANGULAR", "JAVASCRIPT", "PYTHON", "TAILWIND", "COMPONENT", "FRAMEWORK", "LIBRARY", "DEVELOPER", "INTERFACE",
+            "ALGORITHM", "DATABASE", "FRONTEND", "BACKEND", "SERVER", "CLOUD", "NETWORK", "SECURITY", "ENCRYPT", "DEPLOYMENT",
+            "FUNCTION", "VARIABLE", "ITERATION", "PROTOCOL", "API", "GALAXY", "PLANET", "NEBULA", "AURORA", "COMET",
+            "KEYBOARD", "MONITOR", "MOUSE", "PRINTER", "STORAGE", "MOTHERBOARD", "MICROCHIP", "SOFTWARE", "HARDWARE", "INTERNET",
+            "COMPUTER", "PROGRAM", "CODING", "ENGINEER", "MODULAR", "SYNTAX", "BOOLEAN", "ARRAY", "OBJECT", "ASYNC"
+        ];
+        
         const MAX_STRIKES = 8;
         const MAX_ROUNDS = 3;
         let state = {};
@@ -240,6 +255,7 @@
             state.currentRound++;
             state.currentPlayer = 'X';
             state.board = Array(9).fill(null);
+            // Ensure word selection uses the full list
             state.currentWord = wordList[Math.floor(Math.random() * wordList.length)];
             state.guessedLetters = [];
             state.incorrectGuesses = 0;
@@ -272,7 +288,6 @@
             boardElement.innerHTML = '';
             state.board.forEach((cell, index) => {
                 const cellElement = document.createElement('div');
-                // Removed the Tailwind text size class here and moved it to CSS for better control
                 cellElement.classList.add('cell', 'bg-gray-800', 'rounded-lg', 'flex', 'items-center', 'justify-center', 'font-bold', 'cursor-pointer', 'transition-all', 'duration-200', 'hover:bg-gray-700', 'aspect-square');
                 cellElement.dataset.index = index;
 
