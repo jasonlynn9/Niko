@@ -25,50 +25,51 @@
 
         /* --- GLOBAL & MOBILE LAYOUT ADJUSTMENTS (Default styles) --- */
         #game-container {
-            /* Compact mobile padding */
             padding-top: 1rem;
             padding-bottom: 0.5rem;
         }
 
         /* Hangman Word Height Fix (Mobile & Desktop) */
         #word-container {
-            /* Increased padding/min-height for better balance on all screens */
             padding-top: 1.25rem; 
             padding-bottom: 1.25rem;
             min-height: 5rem; 
             height: auto !important; 
-            /* Reduce mobile margins for compaction */
             margin-top: 0.5rem;
             margin-bottom: 0.5rem;
         }
 
         /* Mobile Compaction */
-        #header-area .mb-4 { margin-bottom: 0.5rem !important; } /* Reduce subhead margin */
+        #header-area .mb-4 { margin-bottom: 0.5rem !important; }
         #status-container { margin-bottom: 0.5rem !important; } 
 
-        /* 1. Vertical Strikes Container Setup (Mobile Only) */
+        /* 1. Vertical Strikes Container Setup (Mobile Only) - FIX: Ensure display is flex */
         #strikes-wrapper {
             display: flex;
-            align-items: flex-start;
-            justify-content: center; /* Center the board/strikes column horizontally */
-            gap: 0.75rem; /* Space between strikes and board */
+            align-items: center; /* Center the entire block vertically within the wrapper */
+            justify-content: center; 
+            gap: 0.75rem;
             width: 100%;
-            margin: 0.5rem auto; /* Center the whole wrapper */
-            max-width: 400px; /* Constraint to help centering */
+            margin: 0.5rem auto;
+            max-width: 400px; 
         }
         #strikes-column {
-            display: flex;
-            flex-direction: column; /* Stack strikes vertically */
+            display: flex; /* FIX: Ensure this wrapper is displayed on mobile */
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between; /* Distribute space evenly between dots */
-            height: 100%; /* Take full height of the wrapper */
-            padding-top: 0.5rem;
+            justify-content: space-between; 
+            height: 100%; 
+            padding: 0;
+            order: 1; /* Place strikes before the board */
         }
         #strikes-container {
             flex-direction: column;
             height: 100%;
             padding: 0;
-            gap: 0.2rem; /* Tighter vertical spacing for circles */
+            gap: 0.2rem;
+            justify-content: space-between; /* Space out the strike circles */
+            align-items: center;
+            margin-top: 0.5rem; /* Space below the strikes label */
         }
         .strike-circle {
             width: 1rem; 
@@ -80,13 +81,19 @@
             background-color: #dc2626; 
         }
 
+        /* Hide Strikes Label for the vertical column display on mobile */
+        #strikes-label-mobile {
+            display: none;
+        }
+        
         /* 2. Board Size Adjustment (80% of container) */
         #board {
             width: 80vw;
             max-width: 300px;
             margin: 0;
             padding: 0;
-            aspect-ratio: 1 / 1; 
+            aspect-ratio: 1 / 1;
+            order: 2; /* Place board after the strikes */
         }
         .cell {
             font-size: 2.5rem;
@@ -128,13 +135,13 @@
                 padding: 0;
             }
             #strikes-column {
-                display: none; /* Hide the mobile vertical column on desktop */
+                display: none !important; /* Hide mobile vertical column on desktop */
             }
             #strikes-container {
                 flex-direction: row; 
                 justify-content: center;
                 margin-top: 0.5rem;
-                height: 0.5rem; /* Match the height of the strike bars */
+                height: 0.5rem;
             }
             .strike-circle {
                 width: 1.5rem; 
@@ -149,14 +156,16 @@
             #word-container { 
                 margin-top: 1.5rem;
                 margin-bottom: 1.5rem;
-                padding-top: 1rem; /* Slightly larger desktop height */
+                padding-top: 1rem;
                 padding-bottom: 1rem;
             }
             
+            /* Desktop board/cell sizing */
             #board {
                 width: 100%;
                 max-width: 350px;
                 margin-top: 1rem;
+                order: 2;
             }
             .cell { font-size: 3rem; }
 
@@ -167,6 +176,11 @@
             }
             
             #round-info { font-size: 0.875rem; }
+            
+            /* Ensure the desktop strikes label is visible */
+            #strikes-label-desktop {
+                display: block !important;
+            }
         }
     </style>
 </head>
@@ -207,12 +221,12 @@
                     </div>
                 
                 <div class="my-2 md:hidden">
-                    <p id="strikes-label-mobile" class="text-sm text-gray-400">Strikes</p>
+                    <p id="strikes-label-mobile" class="text-sm text-gray-400 hidden">Strikes</p>
                 </div>
 
                 <div class="my-2 hidden md:block">
                     <p id="strikes-label-desktop" class="text-sm text-gray-400">Strikes</p>
-                    <div id="strikes-container" class="flex justify-center items-center space-x-2 h-6 md:flex-row md:h-6 md:space-x-2">
+                    <div id="strikes-container-desktop" class="flex justify-center items-center space-x-2 h-6 md:flex-row md:h-6 md:space-x-2">
                         </div>
                 </div>
             </div>
@@ -292,6 +306,10 @@
         const restartGameBtn = document.getElementById('restart-game-btn');
         const nextRoundBtn = document.getElementById('next-round-btn');
         const strikesContainer = document.getElementById('strikes-container');
+        
+        // New desktop strikes container element (needed for separate rendering logic)
+        const strikesContainerDesktop = document.getElementById('strikes-container-desktop'); 
+        
         const playerXScoreElement = document.getElementById('player-x-score');
         const playerOScoreElement = document.getElementById('player-o-score');
         const roundInfoElement = document.getElementById('round-info');
@@ -405,8 +423,23 @@
         }
         
         function renderStrikes() {
-            strikesContainer.innerHTML = '';
             const isMobileLayout = window.innerWidth < 768;
+            
+            // Determine which container to use
+            const currentStrikesContainer = isMobileLayout ? strikesContainer : strikesContainerDesktop;
+            if (!currentStrikesContainer) return; // Safety check
+
+            currentStrikesContainer.innerHTML = '';
+
+            // Dynamic sizing of the strikes column based on board size (Mobile only)
+            if (isMobileLayout) {
+                const boardWidth = boardElement.offsetWidth;
+                const strikesColumn = document.getElementById('strikes-column');
+                if (strikesColumn) {
+                    // Set height dynamically based on the actual board element size
+                    strikesColumn.style.height = `${boardWidth}px`; 
+                }
+            }
 
             for (let i = 0; i < MAX_STRIKES; i++) {
                 const strikeElement = document.createElement('div');
@@ -425,28 +458,7 @@
                     strikeElement.classList.add('bg-gray-600');
                 }
                 
-                strikesContainer.appendChild(strikeElement);
-            }
-            
-            // Critical step: Set the height of the vertical strikes column on mobile
-            if (isMobileLayout) {
-                const boardWidth = boardElement.offsetWidth;
-                const gapCount = 2; // Gaps are between cells, 2 rows of gaps for 3 rows of cells
-                
-                // Estimate the height of the board (width is 80vw, gap is 2px)
-                // Since the board uses 'aspect-square', we can use its actual calculated width
-                const estimatedBoardHeight = boardWidth; 
-                
-                // Apply the estimated board height to the strikes container wrapper
-                // Use a slight offset to align the center of the first/last dot with the center of the first/last board row
-                const strikesColumn = document.getElementById('strikes-column');
-                if (strikesColumn) {
-                    // Set height dynamically based on the actual board element size
-                    strikesColumn.style.height = `${estimatedBoardHeight}px`; 
-                    strikesColumn.style.marginTop = '1rem'; // Push it slightly down from the strikes label
-                    strikesColumn.style.marginRight = 'auto';
-                    strikesColumn.style.marginLeft = 'auto';
-                }
+                currentStrikesContainer.appendChild(strikeElement);
             }
         }
 
