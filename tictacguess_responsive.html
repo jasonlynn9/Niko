@@ -23,7 +23,22 @@
             cursor: pointer;
         }
 
-        /* Desktop: Horizontal layout adjustment */
+        /* Mobile Layout Board Adjustment */
+        /* Reducing the board size to 80% of its previous max-width on smaller screens */
+        #board {
+            width: 80%; /* Shrink board for mobile view */
+            max-width: 350px; /* Still prevent it from getting too big on tablets/small desktops */
+            margin-left: auto;
+            margin-right: auto;
+        }
+        /* Mobile adjustment for cell text size to maintain proportions */
+        .cell {
+            font-size: 2.5rem; /* Reduced from 3rem (text-5xl) for better fit on mobile */
+        }
+        /* End Mobile Adjustments */
+
+
+        /* Desktop: Horizontal layout adjustment (md: and up) */
         @media (min-width: 768px) {
             #game-container {
                 max-width: 1200px;
@@ -61,12 +76,16 @@
                 margin-bottom: 0;
             }
             
+            /* Reverting board size and cell font size for desktop */
             #board {
                 width: 100%;
                 max-width: 350px;
                 margin-top: 1rem;
             }
-            
+            .cell {
+                font-size: 3rem; /* Original size for desktop */
+            }
+
             #header-area {
                 position: relative;
                 width: 100%;
@@ -79,7 +98,6 @@
                 right: 1rem;
             }
             
-            /* TWEAK 1: Make round info text smaller on desktop */
             #round-info {
                 font-size: 0.875rem; /* text-sm equivalent */
             }
@@ -155,7 +173,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
-            <h2 class="text-2xl font-bold mb-4 text-cyan-400">How to Play</h2>
+            <h2 class="2xl font-bold mb-4 text-cyan-400">How to Play</h2>
             <div class="space-y-4 text-gray-300">
                 <p><strong class="font-semibold text-white">Objective:</strong> Be the player with the most points after 3 rounds.</p>
                 <div>
@@ -254,7 +272,8 @@
             boardElement.innerHTML = '';
             state.board.forEach((cell, index) => {
                 const cellElement = document.createElement('div');
-                cellElement.classList.add('cell', 'bg-gray-800', 'rounded-lg', 'flex', 'items-center', 'justify-center', 'text-5xl', 'font-bold', 'cursor-pointer', 'transition-all', 'duration-200', 'hover:bg-gray-700', 'aspect-square');
+                // Removed the Tailwind text size class here and moved it to CSS for better control
+                cellElement.classList.add('cell', 'bg-gray-800', 'rounded-lg', 'flex', 'items-center', 'justify-center', 'font-bold', 'cursor-pointer', 'transition-all', 'duration-200', 'hover:bg-gray-700', 'aspect-square');
                 cellElement.dataset.index = index;
 
                 if (cell === 'X') {
