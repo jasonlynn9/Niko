@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic-Tac-Guess - Final Working Responsive</title>
+    <title>Tic-Tac-Guess - Compact Mobile Layout</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -23,27 +23,99 @@
             cursor: pointer;
         }
 
-        /* Mobile Adjustments (Default styles) */
+        /* --- MOBILE LAYOUT ADJUSTMENTS (Default styles) --- */
+        #game-container {
+            /* Keep it max-w-lg but tighten vertical padding */
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        /* 1. Vertical Strikes Container Setup (Mobile Only) */
+        #strikes-wrapper {
+            /* Use flex for positioning the board/strikes next to each other */
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 0.5rem; /* Small gap between strikes and board */
+            width: 100%;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        #strikes-column {
+            display: flex;
+            flex-direction: column; /* Stack strikes vertically */
+            align-items: center;
+            justify-content: space-around;
+            /* Match the height of the board for vertical alignment */
+            height: calc(80vw * (1/3) * 3 + 0.5rem * 2); /* Estimate board height: 80% of viewport width + gaps */
+            padding-top: 0.5rem;
+        }
+        #strikes-container {
+            flex-direction: column; /* Overrides default horizontal flex */
+            height: auto;
+            margin: 0;
+            padding: 0;
+            gap: 0.3rem; /* Tighter vertical spacing for circles */
+        }
+        .strike-circle {
+             /* Define the size of the strike circles */
+            width: 1rem; 
+            height: 1rem;
+            border-radius: 50%;
+            border: 1px solid #dc2626; /* red-600 border for hollow look */
+        }
+        .strike-circle.filled {
+            background-color: #dc2626; /* red-600 when filled */
+        }
+
+
+        /* 2. Board Size Adjustment (80% of container) */
         #board {
-            width: 80%; /* Shrink board for mobile view */
-            max-width: 350px;
-            margin-left: auto;
-            margin-right: auto;
+            width: 80vw; /* Base width on viewport for consistent sizing */
+            max-width: 300px; /* Max constraint for larger phones */
+            margin: 0;
+            padding: 0;
+            /* Ensure aspect-square works correctly */
+            aspect-ratio: 1 / 1; 
         }
+        
+        /* 3. Tighter Vertical Spacing and Sizing */
         .cell {
-            font-size: 2.5rem; /* Reduced size for better mobile fit */
+            font-size: 2.5rem;
         }
-        /* TWEAK: Add more vertical padding/height to the word container background on mobile */
+        #player-x-score, #player-o-score {
+            font-size: 0.875rem; /* text-sm */
+        }
+        #round-info {
+            font-size: 0.875rem; /* text-sm */
+        }
+        #status-container {
+            height: 3rem; /* Reduced height */
+            margin-bottom: 0.5rem; /* Reduced margin */
+        }
+        #status-message {
+            font-size: 1rem; /* text-base */
+        }
         #word-container {
-            padding-top: 1rem; /* Increased padding top */
-            padding-bottom: 1rem; /* Increased padding bottom */
-            height: auto !important; /* Ensure it respects padding even with h-10 class present */
-            min-height: 4rem; /* Ensure minimum height */
+            font-size: 2rem; /* Reduced word size */
+            padding-top: 1rem; 
+            padding-bottom: 1rem; 
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        #keyboard {
+            margin-top: 0.5rem; /* Reduce space before keyboard */
+        }
+        .keyboard-btn {
+            padding: 0.5rem; /* Tighter keyboard buttons */
+        }
+        .mt-8 {
+            margin-top: 1rem; /* Reduce large margin above control buttons */
         }
         /* End Mobile Adjustments */
 
-
-        /* Desktop: Horizontal layout adjustment (md: and up) */
+        
+        /* --- DESKTOP LAYOUT ADJUSTMENTS (md: and up) --- */
         @media (min-width: 768px) {
             #game-container {
                 max-width: 1200px;
@@ -62,24 +134,52 @@
                 max-width: 350px;
             }
             
-            /* Desktop Word Container Reset to respect dedicated desktop margins */
-            #word-container {
-                height: auto; 
-                min-height: 4rem;
-                padding: 0.75rem 0;
+            /* Revert Strikes Display for Desktop */
+            #strikes-wrapper {
+                display: block; /* Remove flex wrapper */
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #strikes-column {
+                display: block; /* Remove vertical column wrapper */
+                height: auto;
+                padding: 0;
+                margin: 0;
+            }
+            #strikes-container {
+                flex-direction: row; /* Horizontal display */
+                justify-content: center;
+                margin-top: 0.5rem;
+            }
+            .strike-circle {
+                width: 1.5rem; /* Slightly larger size for desktop */
+                height: 0.5rem;
+                border-radius: 0.25rem;
+                border: none;
+                background-color: #6b7280; /* gray-600 for unfilled */
+            }
+            .strike-circle.filled {
+                background-color: #dc2626; /* red-600 when filled */
             }
             
-            /* Tweak for Vertical Spacing (Left Column) */
+            /* Tweak for Vertical Spacing (Left Column - Desktop) */
+            #player-x-score, #player-o-score {
+                font-size: 1rem; /* text-base */
+            }
             #status-container {
                 margin-bottom: 1.5rem;
             }
             #word-container {
+                font-size: 2.25rem; /* text-4xl equivalent */
                 margin-top: 1.5rem;
                 margin-bottom: 1.5rem;
             }
-            #strikes-container {
-                margin-top: 1rem;
-                margin-bottom: 0;
+            #strikes-label-desktop { /* Ensure the Strikes label is visible on desktop */
+                display: block;
+            }
+            #strikes-label-mobile { /* Hide the mobile label */
+                display: none;
             }
             
             /* Desktop board/cell sizing */
@@ -114,15 +214,15 @@
 
     <div id="game-container" class="w-full max-w-lg mx-auto text-center relative md:max-w-7xl">
         
-        <div id="header-area" class="w-full text-center mb-6 md:mb-0 md:static">
+        <div id="header-area" class="w-full text-center mb-4 md:mb-0 md:static">
             <button id="rules-btn" class="absolute -top-2 -right-2 text-gray-500 hover:text-white transition-colors z-10 md:top-6 md:right-6">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </button>
-            <h1 class="text-4xl md:text-6xl font-bold mb-2 text-cyan-400">Tic-Tac-Guess</h1>
+            <h1 class="text-4xl md:text-6xl font-bold mb-1 text-cyan-400">Tic-Tac-Guess</h1>
             
-            <p class="text-gray-400 mb-4">
+            <p class="text-gray-400 mb-2">
                 Win Tic-Tac-Toe by guessing letters in the secret word.
                 <a href="https://notebooklm.google.com/notebook/e553e503-e4d8-430a-bf04-bef5ccee8200" target="_blank" class="text-blue-400 hover:text-blue-300 font-semibold ml-2">
                     NotebookLM Deep Dive
@@ -132,43 +232,52 @@
 
         <div id="main-content-wrapper" class="w-full flex flex-col items-center md:flex-row md:items-start md:justify-center">
         
-            <div id="left-column" class="w-full md:w-auto mt-6">
-                <div class="flex justify-between items-center w-full mb-4 text-lg">
-                    <div id="player-x-score" class="bg-gray-800 px-4 py-2 rounded-lg transition-colors duration-300">Player X: 0</div>
+            <div id="left-column" class="w-full md:w-auto mt-2">
+                <div class="flex justify-between items-center w-full mb-2 text-lg">
+                    <div id="player-x-score" class="bg-gray-800 px-3 py-1 rounded-lg transition-colors duration-300">Player X: 0</div>
                     <div id="round-info" class="font-bold">Round 1 / 3</div>
-                    <div id="player-o-score" class="bg-gray-800 px-4 py-2 rounded-lg transition-colors duration-300">Player O: 0</div>
+                    <div id="player-o-score" class="bg-gray-800 px-3 py-1 rounded-lg transition-colors duration-300">Player O: 0</div>
                 </div>
 
-                <div id="status-container" class="h-12 flex items-center justify-center mb-4 md:mb-6">
+                <div id="status-container" class="h-12 flex items-center justify-center mb-1 md:mb-6">
                     <p id="status-message" class="text-xl font-semibold bg-gray-800 px-4 py-2 rounded-lg shadow-md transition-all duration-300">Player X's Turn: Select a square</p>
                 </div>
 
-                <div id="word-container" class="text-3xl md:text-4xl tracking-widest my-4 h-10 flex items-center justify-center font-mono bg-gray-800 p-3 rounded-lg">
+                <div id="word-container" class="text-3xl md:text-4xl tracking-widest my-1 h-10 flex items-center justify-center font-mono bg-gray-800 p-3 rounded-lg">
                     </div>
                 
-                <div class="my-4">
-                    <p class="text-sm text-gray-400">Strikes</p>
-                    <div id="strikes-container" class="flex justify-center items-center space-x-2 h-6">
-                        </div>
+                <div class="my-2 md:hidden">
+                    <p id="strikes-label-mobile" class="text-sm text-gray-400">Strikes</p>
                 </div>
             </div>
 
-            <div id="center-column" class="w-full md:w-auto mt-8">
-                <div id="board" class="grid grid-cols-3 gap-3 my-6 aspect-square w-full max-w-sm mx-auto">
-                    </div>
+            <div id="center-column" class="w-full md:w-auto mt-2">
                 
-                <div class="mt-8 space-x-4">
-                    <button id="next-round-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">
+                <div id="strikes-wrapper" class="md:block">
+                    
+                    <div id="strikes-column" class="hidden md:flex flex-col">
+                        <p class="text-sm text-gray-400 mb-1">Strikes</p>
+                        <div id="strikes-container" class="flex justify-center items-center space-x-2 h-6 md:flex-row md:h-6 md:space-x-2">
+                            </div>
+                    </div>
+
+                    <div id="board" class="grid grid-cols-3 gap-2 aspect-square">
+                        </div>
+
+                </div>
+                
+                <div class="mt-4 space-x-4">
+                    <button id="next-round-btn" class="hidden bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105">
                         Next Round
                     </button>
-                    <button id="restart-game-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">
+                    <button id="restart-game-btn" class="bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-lg shadow-lg transition-transform transform hover:scale-105">
                         Restart Game
                     </button>
                 </div>
             </div>
             
-            <div id="keyboard-column" class="w-full md:w-auto mt-8">
-                <div id="keyboard" class="grid grid-cols-7 sm:grid-cols-9 gap-1.5 text-sm md:text-base md:grid-cols-7 md:gap-2">
+            <div id="keyboard-column" class="w-full md:w-auto mt-4">
+                <div id="keyboard" class="grid grid-cols-7 sm:grid-cols-9 gap-1 text-sm md:text-base md:grid-cols-7 md:gap-2">
                     </div>
             </div>
 
@@ -225,7 +334,6 @@
         const rulesModal = document.getElementById('rules-modal');
         const closeModalBtn = document.getElementById('close-modal-btn');
         
-        // TWEAK: Significantly expanded word list for variety
         const wordList = [
             "REACT", "ANGULAR", "JAVASCRIPT", "PYTHON", "TAILWIND", "COMPONENT", "FRAMEWORK", "LIBRARY", "DEVELOPER", "INTERFACE",
             "ALGORITHM", "DATABASE", "FRONTEND", "BACKEND", "SERVER", "CLOUD", "NETWORK", "SECURITY", "ENCRYPT", "DEPLOYMENT",
@@ -247,7 +355,7 @@
                 startNewRound();
             } catch (error) {
                 console.error("Error in restartGame:", error);
-                statusMessage.textContent = "Error: Cannot start game. Check console.";
+                if (statusMessage) statusMessage.textContent = "Error: Cannot start game. Check console.";
             }
         }
         
@@ -255,7 +363,6 @@
             state.currentRound++;
             state.currentPlayer = 'X';
             state.board = Array(9).fill(null);
-            // Ensure word selection uses the full list
             state.currentWord = wordList[Math.floor(Math.random() * wordList.length)];
             state.guessedLetters = [];
             state.incorrectGuesses = 0;
@@ -334,14 +441,25 @@
         
         function renderStrikes() {
             strikesContainer.innerHTML = '';
+            const isMobileLayout = window.innerWidth < 768;
+
             for (let i = 0; i < MAX_STRIKES; i++) {
                 const strikeElement = document.createElement('div');
-                strikeElement.classList.add('w-6', 'h-2', 'rounded-full');
-                if (i < state.incorrectGuesses) {
-                    strikeElement.classList.add('bg-red-500');
+                
+                if (isMobileLayout) {
+                    // Mobile: Vertical, Hollow circles that fill
+                    strikeElement.classList.add('strike-circle');
                 } else {
+                    // Desktop: Horizontal, Small filled bars
+                    strikeElement.classList.add('w-6', 'h-2', 'rounded-full');
+                }
+
+                if (i < state.incorrectGuesses) {
+                    strikeElement.classList.add('bg-red-500', 'filled');
+                } else if (!isMobileLayout) {
                     strikeElement.classList.add('bg-gray-600');
                 }
+                
                 strikesContainer.appendChild(strikeElement);
             }
         }
@@ -494,6 +612,9 @@
                 closeRulesModal();
             }
         });
+        
+        // Render strikes when window is resized to switch layouts
+        window.addEventListener('resize', renderStrikes);
 
         document.addEventListener('DOMContentLoaded', restartGame);
     </script>
