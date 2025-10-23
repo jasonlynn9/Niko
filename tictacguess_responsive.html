@@ -45,8 +45,9 @@
 
         /* 1. Vertical Strikes Container Setup (Mobile Only) */
         #strikes-wrapper {
+            /* Centers the entire board + strikes block horizontally */
             display: flex;
-            align-items: flex-start; /* Align content to the top of the row */
+            align-items: flex-start; 
             justify-content: center; 
             gap: 0.75rem; 
             width: 100%;
@@ -54,27 +55,27 @@
             max-width: 400px; 
         }
         
-        /* FIX 1: Ensure column items align perfectly and shift left */
+        /* FIX: Ensure strikes column is aligned with the top of the dots (flex-start) */
         #strikes-column {
             display: flex; 
             flex-direction: column;
-            align-items: center; /* Center items horizontally within their narrow column */
-            justify-content: flex-start; /* Start items from the top (no space-between here) */
+            align-items: center; 
+            justify-content: flex-start; /* Ensure it starts from the top */
             height: 100%; 
             padding: 0;
             order: 1;
             /* Adjust margin to shift the column slightly left */
-            margin-left: 0.5rem; 
+            margin-left: -1rem; 
         }
         
         #strikes-container {
             flex-direction: column;
             height: 100%;
             padding: 0;
-            gap: 0.2rem;
-            justify-content: space-between; 
+            gap: 0; /* Remove gap here; vertical alignment will be handled by JS space-between */
+            justify-content: space-between; /* Space out the dots evenly along the column height */
             align-items: center;
-            margin-top: 0.5rem; 
+            margin-top: 0; 
         }
         
         .strike-circle {
@@ -82,6 +83,8 @@
             height: 1rem;
             border-radius: 50%;
             border: 1px solid #dc2626; 
+            /* Ensure no margin/padding interference */
+            flex-shrink: 0; 
         }
         .strike-circle.filled {
             background-color: #dc2626; 
